@@ -35,35 +35,35 @@
     </property>
     <layout class="QHBoxLayout" name="horizontalLayout">
      <item>
-      <widget class="QPushButton" name="pushButton">
+      <widget class="QPushButton" name="btnRefresh">
        <property name="text">
         <string>Refresh</string>
        </property>
       </widget>
      </item>
      <item>
-      <widget class="QPushButton" name="pushButton_2">
+      <widget class="QPushButton" name="btnAdd">
        <property name="text">
         <string>Add channel</string>
        </property>
       </widget>
      </item>
      <item>
-      <widget class="QPushButton" name="pushButton_3">
+      <widget class="QPushButton" name="btnRemove">
        <property name="text">
         <string>Remove channel</string>
        </property>
       </widget>
      </item>
      <item>
-      <widget class="QPushButton" name="pushButton_4">
+      <widget class="QPushButton" name="bntUp">
        <property name="text">
         <string>Up channel</string>
        </property>
       </widget>
      </item>
      <item>
-      <widget class="QPushButton" name="pushButton_5">
+      <widget class="QPushButton" name="bntDown">
        <property name="text">
         <string>Down channel</string>
        </property>
@@ -78,7 +78,7 @@
      <x>0</x>
      <y>0</y>
      <width>680</width>
-     <height>23</height>
+     <height>20</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
