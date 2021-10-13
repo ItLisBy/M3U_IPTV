@@ -5,8 +5,8 @@
 #include <QMessageBox>
 
 
-class DB
-{
+class DB {
+    Q_OBJECT
 public:
 
     static QSqlDatabase db;//Глобальный обьект базы
@@ -26,6 +26,12 @@ public:
     static QString startStr;
 
     static bool resetTable();
+
+    static void addEmptyLine(int pos);
+
+signals:
+
+    static void modelChanged();
 };
 
 #endif // DB_H

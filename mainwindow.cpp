@@ -8,6 +8,9 @@ MainWindow::MainWindow(QWidget *parent)
     , ui(new Ui::MainWindow) {
 
     ui->setupUi(this);
+    DB a;
+    QObject::connect((QObject*)&a, SIGNAL(DB::modelChanged()),
+                     (QObject*)ui, SLOT(MainWindow::on_btnRefresh_clicked()));
 
 }
 
@@ -17,14 +20,13 @@ MainWindow::~MainWindow()
 }
 
 void MainWindow::on_btnRefresh_clicked() {
-    DB::makeModel();
+    //DB::makeModel();
     setupTableView(DB::model);
 }
 
 
-void MainWindow::on_btnAdd_clicked()
-{
-
+void MainWindow::on_btnAdd_clicked() {
+    DB::model.insertRecord(DB::model.rowCount()+1, QSqlRecord());
 }
 
 

@@ -71,6 +71,7 @@ bool DB::fromDbToFile(QString filePath) {
 
 //TODO:Review this shit
 void DB::makeModel() {
+
     if (!db.isOpen()) {
         if (!db.open())
             return;
@@ -81,6 +82,7 @@ void DB::makeModel() {
         while (model.canFetchMore())
             model.fetchMore();
         db.close();
+        emit modelChanged();
         return;
     }
     model.setTable("Channels");//Имя тэйблы
@@ -89,6 +91,7 @@ void DB::makeModel() {
     model.select(); // Делаем выборку значений из таблиц
     while (model.canFetchMore())
         model.fetchMore();
+    emit modelChanged();
 }
 
 bool DB::fileToDB(QString filePath) {
@@ -123,7 +126,7 @@ bool DB::fileToDB(QString filePath) {
         if (str.contains("#EXTM3U")) //Если есть первая строка
         {
             startStr = str.remove("#EXTM3U");
-            startStr = startStr.remove("\r\n");//Удаляем перевод каретки и сдвиг строки
+            //startStr = startStr.remove("\r\n");//Удаляем перевод каретки и сдвиг строки
             strNumber++;
         }
 
@@ -131,7 +134,8 @@ bool DB::fileToDB(QString filePath) {
         {
             chRec = str[str.indexOf("\"")+1];
             chName = str.remove(0, str.indexOf(',') + 1);
-            chName = chName.remove("\r\n");
+            //chName = chName.remove("\r\n");
+            chName = chName.remove("'");
             strNumber++;
             chanNumber++;
             strChanNumber++;
@@ -140,7 +144,7 @@ bool DB::fileToDB(QString filePath) {
         else if (str.contains("#EXTGRP:"))
         {
             chGroup = str.remove("#EXTGRP:");
-            chGroup = chGroup.remove("\r\n");
+            //chGroup = chGroup.remove("\r\n");
             strNumber++;
             strChanNumber++;
         }
@@ -148,7 +152,7 @@ bool DB::fileToDB(QString filePath) {
         else if (str.contains("http"))
         {
             chUrl = str;
-            chUrl = chUrl.remove("\r\n");
+            //chUrl = chUrl.remove("\r\n");
             strNumber++;
             strChanNumber = 0;
         }
@@ -171,7 +175,7 @@ bool DB::fileToDB(QString filePath) {
                         .arg("Ересь");
 
             if (!query->exec(strDb)){ //Проверочка
-                qDebug() << "Unable to do insert opeation";
+                qDebug() << "0Unable to do insert opeation" + QString::number(strNumber);
             }
 
             strNumber++;
@@ -192,7 +196,7 @@ bool DB::fileToDB(QString filePath) {
 
             if (!query->exec(strDb)) //Проверочка
             {
-                qDebug() << "Unable to do insert opeation";
+                qDebug() << "1Unable to do insert opeation" + QString::number(strNumber);
             }
         }
 
@@ -207,11 +211,22 @@ bool DB::resetTable() {
     query->exec("DROP TABLE Channels");
     query->exec("CREATE TABLE IF NOT EXISTS 'Channels'(\
                                            'ChannelID'	INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL UNIQUE,\
-                                           'Num' INTEGER NOT NULL UNIQUE,\
-                                           'Name' TEXT NOT NULL,\
-                                           'ChannelGroup' TEXT NOT NULL,\
-                                           'URL' TEXT NOT NULL,\
-                                           'Rec' TEXT NOT NULL DEFAULT 0\
+                                           'Num' INTEGER UNIQUE,\
+                                           'Name' TEXT,\
+                                           'ChannelGroup' TEXT,\
+                                           'URL' TEXT,\
+                                           'Rec' TEXT DEFAULT 0\
                                            )");
     return true;
+}
+
+void DB::addEmptyLine(int pos) {
+    QString strF = "INSERT INTO  Channels (Num, Name, ChannelGroup, URL, Rec) "
+                   "VALUES(%1, '%2', '%3', '%4', '%5');";//Загружаем ересь в базу
+
+    strF = strF.arg(pos)
+                .arg("")
+                .arg("")
+                .arg("")
+                .arg("");
 }
