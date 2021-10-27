@@ -5,8 +5,8 @@
 #include <QMessageBox>
 
 
-class DB
-{
+class DB {
+    Q_OBJECT
 public:
 
     static QSqlDatabase db;//Глобальный обьект базы
