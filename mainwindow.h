@@ -30,6 +30,20 @@ private slots:
 
     void on_actionOpen_triggered();
 
+    void on_actionSave_triggered();
+
+    void on_btnSave_clicked();
+
+    void on_pushButton_2_clicked();
+
+    /*void on_actionAdd_Channel_triggered();
+
+    void on_actionDown_channel_triggered();
+
+    void on_actionUp_channel_triggered();*/
+
+    void on_actionNew_triggered();
+
 private:
     Ui::MainWindow *ui;
     void setupTableView(QSqlTableModel &model);

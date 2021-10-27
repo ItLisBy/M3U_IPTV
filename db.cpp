@@ -16,7 +16,7 @@ bool DB::initDB() {//Как открывем базу
         return false;
     }
 
-    query->exec("PRAGMA synchronous=OFF");
+    //query->exec("PRAGMA synchronous=OFF");
     resetTable();
 
     db.close();
@@ -39,27 +39,26 @@ bool DB::fromDbToFile(QString filePath) {
 
     stream << "#EXTM3U" << startStr << "\r\n"; //Добавляем конец строки и переход
 
-    if (!query->exec("SELECT * FROM First;")) { //Проверочка
+    if (!query->exec("SELECT * FROM Channels ORDER BY Num ASC;")) { //Проверочка
             qDebug() << "Unable to execute query - exiting";
     }
 
     //Reading of the data
     QSqlRecord rec = query->record();
-    QString chNumber = nullptr;
     QString chName = nullptr;
     QString chGroup = nullptr;
     QString chUrl = nullptr;
+    QString chRec = nullptr;
 
     while (query->next())
     {
-        //В следующих 4 строках я сам не до конца разобрался
-        chNumber = query->value(rec.indexOf("Number")).toString();
         chName  = query->value(rec.indexOf("Name")).toString();
-        chGroup = query->value(rec.indexOf("Gr")).toString();
+        chGroup = query->value(rec.indexOf("ChannelGroup")).toString();
         chUrl = query->value(rec.indexOf("URL")).toString();
+        chRec = query->value(rec.indexOf("Rec")).toString();
         stream.setEncoding(QStringConverter::Utf8); //Ставим кодировку
-        stream.setGenerateByteOrderMark(false); //Не надо нам ваш BOM, или как его там
-        stream << "#EXTINF:-1 tvg-chno=\"" <<  chNumber<< "\","
+        stream.setGenerateByteOrderMark(false);
+        stream << "#EXTINF:0 tvg-rec=\"" <<  chRec << "\","
                << chName << "\n"
                << "#EXTGRP:" << chGroup << "\r\n"
                <<  chUrl << "\r\n"; //Выводим все разом в файл
@@ -75,7 +74,7 @@ void DB::makeModel() {
         if (!db.open())
             return;
         model.setTable("Channels");//Имя тэйблы
-        model.setEditStrategy(QSqlTableModel::OnFieldChange);//Метод обновления таблицы после редактирования
+        model.setEditStrategy(QSqlTableModel::OnManualSubmit);//Метод обновления таблицы после редактирования
         model.setSort(1, Qt::AscendingOrder);
         model.select(); // Делаем выборку значений из таблиц
         while (model.canFetchMore())
@@ -84,7 +83,7 @@ void DB::makeModel() {
         return;
     }
     model.setTable("Channels");//Имя тэйблы
-    model.setEditStrategy(QSqlTableModel::OnFieldChange);//Метод обновления таблицы после редактирования
+    model.setEditStrategy(QSqlTableModel::OnManualSubmit);//Метод обновления таблицы после редактирования
     model.setSort(1, Qt::AscendingOrder);
     model.select(); // Делаем выборку значений из таблиц
     while (model.canFetchMore())
@@ -168,7 +167,7 @@ bool DB::fileToDB(QString filePath) {
                         .arg("Ересь")
                         .arg("Ересь")
                         .arg("Ересь")
-                        .arg("Ересь");
+                        .arg(0);
 
             if (!query->exec(strDb)){ //Проверочка
                 qDebug() << "Unable to do insert opeation";
@@ -185,14 +184,14 @@ bool DB::fileToDB(QString filePath) {
                            "VALUES(%1, '%2', '%3', '%4', '%5');";//Загружаем дату о канале в базу
 
             strDb = strF.arg(chanNumber)
-                        .arg(chName)
+                        .arg(chName.remove("'"))
                         .arg(chGroup)
                         .arg(chUrl)
                         .arg(chRec);
 
             if (!query->exec(strDb)) //Проверочка
             {
-                qDebug() << "Unable to do insert opeation";
+                qDebug() << "Unable to do insert opeation1";
             }
         }
 
@@ -207,11 +206,104 @@ bool DB::resetTable() {
     query->exec("DROP TABLE Channels");
     query->exec("CREATE TABLE IF NOT EXISTS 'Channels'(\
                                            'ChannelID'	INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL UNIQUE,\
-                                           'Num' INTEGER NOT NULL UNIQUE,\
+                                           'Num' INTEGER,\
                                            'Name' TEXT NOT NULL,\
-                                           'ChannelGroup' TEXT NOT NULL,\
-                                           'URL' TEXT NOT NULL,\
-                                           'Rec' TEXT NOT NULL DEFAULT 0\
+                                           'ChannelGroup' TEXT ,\
+                                           'Rec' TEXT DEFAULT 0,\
+                                           'URL' TEXT \
                                            )");
     return true;
+}
+
+void DB::save()
+{
+    if(!db.open()) {
+        QMessageBox::warning(nullptr, "Error", "Connection failed: " + db.lastError().text(), QMessageBox::Ok);
+    }
+    model.submitAll();
+    db.close();
+}
+
+void DB::discard()
+{
+    if(!db.open()) {
+        QMessageBox::warning(nullptr, "Error", "Connection failed: " + db.lastError().text(), QMessageBox::Ok);
+    }
+    model.revertAll();
+    db.close();
+}
+
+void DB::insertEmptyRecord(int pos)
+{
+    if(!db.open()) {
+        QMessageBox::warning(nullptr, "Error", "Connection failed: " + db.lastError().text(), QMessageBox::Ok);
+    }
+    query->prepare("UPDATE Channels SET Num = Num + 1 WHERE Num > ?;");
+    query->addBindValue(pos+1);
+    query->exec();
+    query->prepare("INSERT INTO Channels (Num, Name, ChannelGroup, URL, Rec)"
+                   "VALUES(?, 'new', '', '', '0');");
+    query->addBindValue(pos+2);
+    query->exec();
+    db.close();
+}
+
+void DB::rmRecord(int pos)
+{
+    if(!db.open()) {
+        QMessageBox::warning(nullptr, "Error", "Connection failed: " + db.lastError().text(), QMessageBox::Ok);
+    }
+    query->prepare("DELETE FROM Channels WHERE Num = ?;");
+    query->addBindValue(pos+1);
+    query->exec();
+    query->prepare("UPDATE Channels SET Num = Num - 1 WHERE Num > ?;");
+    query->addBindValue(pos+1);
+    query->exec();
+    db.close();
+}
+
+void DB::mvDownRecord(int from)
+{
+    if(!db.open()) {
+        QMessageBox::warning(nullptr, "Error", "Connection failed: " + db.lastError().text(), QMessageBox::Ok);
+    }
+    query->prepare("UPDATE Channels SET Num = -1 WHERE Num = ?;");
+    query->addBindValue(from+1);
+    query->exec();
+
+    query->prepare("UPDATE Channels SET Num = ? WHERE Num = ?;");
+    query->addBindValue(from+1);
+    query->addBindValue(from+2);
+    query->exec();
+
+    query->prepare("UPDATE Channels SET Num = ? WHERE Num = -1;");
+    query->addBindValue(from+2);
+    query->exec();
+    db.close();
+}
+
+void DB::mvUpRecord(int from)
+{
+    if(!db.open()) {
+        QMessageBox::warning(nullptr, "Error", "Connection failed: " + db.lastError().text(), QMessageBox::Ok);
+    }
+    query->prepare("UPDATE Channels SET Num = -1 WHERE Num = ?;");
+    query->addBindValue(from+1);
+    query->exec();
+
+    query->prepare("UPDATE Channels SET Num = ? WHERE Num = ?;");
+    query->addBindValue(from+1);
+    query->addBindValue(from);
+    query->exec();
+
+    query->prepare("UPDATE Channels SET Num = ? WHERE Num = -1;");
+    query->addBindValue(from);
+    query->exec();
+    db.close();
+}
+
+void DB::newPlaylist()
+{
+    insertEmptyRecord(-1);
+
 }

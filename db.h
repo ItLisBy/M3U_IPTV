@@ -26,6 +26,20 @@ public:
     static QString startStr;
 
     static bool resetTable();
+
+    static void save();
+
+    static void discard();
+
+    static void insertEmptyRecord(int pos);
+
+    static void rmRecord(int pos);
+
+    static void mvDownRecord(int from);
+
+    static void mvUpRecord(int from);
+
+    static void newPlaylist();
 };
 
 #endif // DB_H
